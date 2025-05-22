@@ -1,16 +1,15 @@
 package dev.langchain4j.service.tool;
 
+import static dev.langchain4j.internal.Utils.isNullOrBlank;
+
 import dev.langchain4j.Internal;
 import dev.langchain4j.agent.tool.ToolExecutionRequest;
 import dev.langchain4j.internal.Json;
-
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static dev.langchain4j.internal.Utils.isNullOrBlank;
 
 /**
  * Utility class for {@link ToolExecutionRequest}.
@@ -19,19 +18,16 @@ import static dev.langchain4j.internal.Utils.isNullOrBlank;
 class ToolExecutionRequestUtil {
 
     private static final Pattern TRAILING_COMMA_PATTERN = Pattern.compile(",(\\s*[}\\]])");
-
     private static final Pattern LEADING_TRAILING_QUOTE_PATTERN = Pattern.compile("^\"|\"$");
-
     private static final Pattern ESCAPED_QUOTE_PATTERN = Pattern.compile("\\\\\"");
 
-    private ToolExecutionRequestUtil() {
-    }
+    private ToolExecutionRequestUtil() {}
 
     private static final Type MAP_TYPE = new ParameterizedType() {
 
         @Override
         public Type[] getActualTypeArguments() {
-            return new Type[]{String.class, Object.class};
+            return new Type[] {String.class, Object.class};
         }
 
         @Override
@@ -56,8 +52,12 @@ class ToolExecutionRequestUtil {
             return Map.of();
         }
 
-        String normalizeArguments = normalizeJsonString(arguments);
-        return Json.fromJson(removeTrailingComma(normalizeArguments), MAP_TYPE);
+        try {
+            return Json.fromJson(arguments, MAP_TYPE);
+        } catch (Exception ignored) {
+            String normalizedArguments = removeTrailingComma(normalizeJsonString(arguments));
+            return Json.fromJson(normalizedArguments, MAP_TYPE);
+        }
     }
 
     /**
@@ -91,5 +91,4 @@ class ToolExecutionRequestUtil {
         Matcher escapedQuoteMatcher = ESCAPED_QUOTE_PATTERN.matcher(normalizedJson);
         return escapedQuoteMatcher.replaceAll("\"");
     }
-
 }
