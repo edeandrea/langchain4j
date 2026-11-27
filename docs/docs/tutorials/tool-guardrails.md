@@ -230,6 +230,26 @@ handler, the chat memory and the
 
 Any other exception thrown by a guardrail aborts the invocation, like a [fatal failure](#fatal-failures).
 
+### Checking arguments against the tool's schema
+
+[`JsonSchemaToolInputGuardrail`](https://github.com/langchain4j/langchain4j/blob/main/langchain4j-guardrails/src/main/java/dev/langchain4j/guardrails/JsonSchemaToolInputGuardrail.java),
+in the `langchain4j-guardrails` module, checks the arguments against the JSON schema of the tool's parameters before the tool runs.
+It reports missing or `null` required properties, wrong JSON types (for example a string or `2.7` for an integer) and
+values outside an enum, at any depth.
+Without it, values inside an object parameter are converted when they are bound to the tool method: a missing `int`
+becomes `0` and `2.7` becomes `2`.
+
+```java
+AiServices.builder(Assistant.class)
+        .chatModel(chatModel)
+        .tools(new OrderTools())
+        .toolInputGuardrails(new JsonSchemaToolInputGuardrail())
+        .build();
+```
+
+A violation is a non-fatal failure: the tool is not executed, and the LLM gets an error tool result that lists each
+violation by its path (for example `order.quantity: expected an integer`), without the values it sent.
+
 ## Tool Output Guardrails
 
 A tool output guardrail implements
